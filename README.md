@@ -14,8 +14,8 @@ programming in OCaml.
 
 Sending email can be quite slow. Most real web servers can't afford to
 do this task in a blocking fashion because they need to respond to
-requests quickly. Instead, the server adds an email task to a queue
-for a background worker to process.
+requests quickly. To avoid latency, it's common for the server to add
+email tasks to a queue for a background worker to process.
 
 This project illustrates how to implement this design. The app exposes
 a simple form with address/subject/text fields and allows the user to
@@ -29,7 +29,7 @@ worker process uses Mailgun's REST API (via `cohttp`) to send email.
 You'll need to sign up for a mailgun account
 [here](https://www.mailgun.com/). You should be able to get a free
 "sandbox" account without having to pay. Once you've signed in, open
-the "sending domains" tab on the main menu, you should see a sandbox
+the "sending domains" tab on the main menu. You should see a sandbox
 domain named something like: `sandbox<some hex id
 string>.mailgun.org`. Selecting that domain should take you to a menu
 with the following data:
@@ -55,7 +55,7 @@ logs.
 
 Start the web server by running `./run.sh server`. In a separate
 shell, run `./run.sh worker` to start the worker process, which should
-print a simple log that looks like this.
+print a simple log:
 
 ```
 Starting Queue Worker
@@ -78,16 +78,17 @@ Time to send an email: 0.67s
 ```
 
 Later, you should see the message in your inbox. Notice how the worker
-process helps the server avoid the latency incurred by making a
-request to Mailgun API (0.67s in the example above).
+process helps the server avoid the latency of a request to Mailgun API
+(0.67s in the example above).
 
 ## Exercises to Consider
 
-- Mailgun also supports SMTP. How would you update the worker process to
-use SMTP instead of Mailgun's API? Consider using the library
+- Mailgun also supports SMTP. Update the worker process to use SMTP
+instead of Mailgun's API. Consider using the library
 [letters](https://github.com/oxidizing/letters/) for this.
-- Right now, if a request to Mailgun fails the message gets
-  dropped. How would you make this system more fault tolerant?
+- In the current system, if a request to Mailgun fails then the
+  message gets dropped. Update the worker process to be more fault
+  tolerant.
 
 ## Feedback
 
