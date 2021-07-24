@@ -80,7 +80,25 @@ let queue_email address subject text =
   let email = {address; subject; text} in
   let text = email |> yojson_of_email |> Yojson.Safe.to_string in
   let%lwt channel, queue = rabbit_connection () in
-  Queue.publish channel queue (Message.make text)
+  let%lwt _ = Queue.publish channel queue (Message.make text) in
+  Lwt.return_unit
+
+
+let form_post request =
+  match%lwt Dream.form request with
+    | `Ok ["address", address; "message", message; "subject", subject ] ->
+      let parse = Emile.of_string address in
+      let alert = match parse with
+        | Ok _ -> Printf.sprintf "Sent an email to %s." address
+        | Error _ -> Printf.sprintf "%s is not a valid email address." address
+      in
+      let queue_req = match parse with
+        | Ok _ -> queue_email address subject message
+        | Error _ -> Lwt.return_unit
+    in
+    queue_req >>= (fun _ ->
+        Dream.html (Template.show_form ~alert request))
+    | _ -> Dream.empty `Bad_Request
 
 
 let web () =
@@ -91,18 +109,7 @@ let web () =
     Dream.get "/"
       (fun request ->
          Dream.html (Template.show_form request));
-
-    Dream.post "/"
-      (fun request ->
-         match%lwt Dream.form request with
-         | `Ok ["address", address; "message", message; "subject", subject ] ->
-           let alert = match Emile.of_string address with
-             | Ok _ -> Printf.sprintf "Sent an email to %s." address
-             | Error _ -> Printf.sprintf "%s is not a valid email address." address in
-           queue_email address subject message
-           >>= (fun _ -> Dream.html (Template.show_form ~alert request))
-         | _ ->
-           Dream.empty `Bad_Request)
+    Dream.post "/" form_post
   ]
   @@ Dream.not_found
 
